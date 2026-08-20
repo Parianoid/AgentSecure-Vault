@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="description" content="AgentShield Vault — zero-trust, post-quantum secret access for autonomous AI agents.">
+  <title>AgentShield Vault</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #f5f5f7;
+      --surface: #fff;
+      --ink: #1d1d1f;
+      --muted: #6e6e73;
+      --line: rgba(0,0,0,.09);
+      --blue: #0071e3;
+      --blue-dark: #0062c3;
+      --green: #18864b;
+      --red: #d92d20;
+      --amber: #a15c00;
+      --dark: #101114;
+      --dark-soft: #1a1b1f;
+      --radius-xl: 32px;
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --shadow: 0 14px 40px rgba(0,0,0,.07);
+      --page: min(1180px, calc(100% - 44px));
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+    button, input, select { font: inherit; }
+    button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
+    button { border: 0; }
+    a { color: inherit; text-decoration: none; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 3px solid rgba(0,113,227,.32); outline-offset: 3px; }
+
+    .skip { position: fixed; left: 20px; top: -100px; z-index: 100; padding: 10px 14px; background: #fff; border-radius: 10px; box-shadow: var(--shadow); }
+    .skip:focus { top: 14px; }
+    .nav-shell { position: sticky; top: 0; z-index: 30; height: 52px; background: rgba(250,250,252,.82); border-bottom: 1px solid rgba(0,0,0,.05); backdrop-filter: saturate(180%) blur(20px); }
+    .nav { width: var(--page); height: 100%; margin: auto; display: flex; align-items: center; gap: 28px; }
+    .brand { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; }
+    .brand-mark { width: 20px; height: 22px; border: 1.7px solid currentColor; border-radius: 9px 9px 11px 11px; position: relative; }
+    .brand-mark::after { content: ""; position: absolute; width: 4px; height: 4px; border: 1.5px solid currentColor; border-radius: 50%; left: 6px; top: 7px; }
+    .nav-links { margin-left: auto; display: flex; gap: 28px; align-items: center; color: #3f3f42; font-size: 12px; }
+    .nav-links a:hover { color: var(--blue); }
+    .tutorial-nav { padding: 0; background: transparent; color: inherit; cursor: pointer; font-size: 12px; }
+    .tutorial-nav:hover { color: var(--blue); }
+    .status-mini { display: inline-flex; gap: 7px; align-items: center; font-size: 12px; color: var(--muted); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #a1a1a6; }
+    .dot.live { background: #24a35a; box-shadow: 0 0 0 4px rgba(36,163,90,.1); }
+
+    .hero { width: var(--page); min-height: 650px; margin: 0 auto; padding: 118px 0 92px; display: flex; align-items: center; justify-content: center; text-align: center; }
+    .hero > div { width: 100%; max-width: 1080px; margin: 0 auto; }
+    .eyebrow { margin: 0 0 18px; color: var(--blue); font-weight: 650; font-size: 14px; letter-spacing: .015em; }
+    .hero h1 { max-width: 1080px; margin: 0 auto; font-size: clamp(58px, 6.2vw, 94px); line-height: .98; letter-spacing: -.055em; font-weight: 700; }
+    .hero h1 span { color: #86868b; }
+    .hero-copy { max-width: 720px; margin: 30px auto 0; color: var(--muted); font-size: 21px; line-height: 1.42; letter-spacing: -.018em; }
+    .hero-actions { margin-top: 36px; display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+    .button { min-height: 44px; padding: 0 20px; border-radius: 999px; display: inline-flex; justify-content: center; align-items: center; gap: 8px; background: var(--blue); color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+    .button:hover { background: var(--blue-dark); transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,113,227,.2); }
+    .button.secondary { background: transparent; color: var(--blue); padding-inline: 2px; }
+    .button.secondary:hover { background: transparent; box-shadow: none; }
+    .button.ghost { background: #e9e9ed; color: var(--ink); }
+    .button.ghost:hover { background: #dedee3; box-shadow: none; }
+    .button.danger { background: #fff0ef; color: var(--red); }
+    .button.small { min-height: 34px; padding: 0 14px; font-size: 12px; }
+    .button:disabled { opacity: .48; cursor: not-allowed; transform: none; box-shadow: none; }
+    .arrow { transition: transform .18s ease; }
+    .button:hover .arrow { transform: translateX(2px); }
+
+    .capabilities { width: var(--page); margin: 0 auto 118px; overflow-x: auto; scrollbar-width: none; }
+    .capabilities::-webkit-scrollbar { display: none; }
+    .cap-row { min-width: 1020px; display: grid; grid-template-columns: repeat(5, 1fr); border-block: 1px solid var(--line); }
+    .cap { padding: 31px 28px 31px 0; }
+    .cap + .cap { border-left: 1px solid var(--line); padding-left: 28px; }
+    .cap strong { display: block; font-size: 17px; letter-spacing: -.015em; }
+    .cap span { display: block; margin-top: 7px; font-size: 15px; color: var(--muted); line-height: 1.42; }
+
+    .section { width: var(--page); margin: 0 auto 132px; scroll-margin-top: 80px; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 28px; }
+    .section-kicker { margin: 0 0 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
+    h2 { margin: 0; max-width: 820px; font-size: clamp(38px, 5vw, 58px); line-height: 1.02; letter-spacing: -.045em; }
+    h2 span { color: #86868b; }
+    .section-note { max-width: 310px; margin: 0 0 6px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .card { background: var(--surface); border-radius: var(--radius-xl); box-shadow: 0 1px 0 rgba(0,0,0,.03); overflow: hidden; }
+    .store-card { display: grid; grid-template-columns: 1fr 1fr; min-height: 610px; }
+    .form-pane { padding: clamp(30px, 5vw, 62px); }
+    .visual-pane { background: #ececf0; padding: 50px; display: flex; flex-direction: column; justify-content: space-between; }
+    .pane-label { color: var(--muted); font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; }
+    .form-title { margin: 14px 0 10px; font-size: 30px; letter-spacing: -.035em; }
+    .form-copy { color: var(--muted); margin: 0 0 30px; font-size: 14px; line-height: 1.5; }
+    .field { margin-bottom: 20px; }
+    .field label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
+    .input { width: 100%; min-height: 50px; border: 1px solid #d2d2d7; border-radius: 12px; background: #fff; color: var(--ink); padding: 0 15px; font-size: 15px; transition: border .18s, box-shadow .18s; }
+    .input:focus { border-color: var(--blue); outline: 0; box-shadow: 0 0 0 4px rgba(0,113,227,.1); }
+    .input::placeholder { color: #a1a1a6; }
+    select.input { appearance: none; background-image: linear-gradient(45deg,transparent 50%,#777 50%),linear-gradient(135deg,#777 50%,transparent 50%); background-position: calc(100% - 19px) 21px,calc(100% - 14px) 21px; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 38px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    details.policy { margin: 2px 0 24px; border-block: 1px solid var(--line); }
+    details.policy summary { list-style: none; cursor: pointer; padding: 16px 2px; font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; }
+    details.policy summary::-webkit-details-marker { display:none; }
+    details.policy summary::after { content: "+"; color: var(--muted); font-size: 18px; font-weight: 400; }
+    details.policy[open] summary::after { content: "−"; }
+    .policy-fields { padding: 2px 0 18px; }
+    .microcopy { color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .form-status { min-height: 20px; margin: 14px 0 0; color: var(--muted); font-size: 12px; }
+    .form-status.success { color: var(--green); }
+    .form-status.error { color: var(--red); }
+
+    .pipeline { display: grid; gap: 18px; margin: auto 0; }
+    .pipe-step { background: rgba(255,255,255,.75); border: 1px solid rgba(0,0,0,.055); border-radius: 18px; padding: 20px; display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 14px; transition: transform .35s ease, background .35s ease, box-shadow .35s ease; }
+    .pipe-index { width: 38px; height: 38px; border-radius: 12px; background: #fff; display: grid; place-items: center; font-family: var(--mono); font-size: 12px; color: var(--blue); }
+    .pipe-step strong { display: block; font-size: 14px; }
+    .pipe-step small { display: block; color: var(--muted); margin-top: 4px; }
+    .pipe-state { width: 9px; height: 9px; background: #c7c7cc; border-radius: 50%; }
+    .pipeline.running .pipe-step { animation: process 1.2s ease both; }
+    .pipeline.running .pipe-step:nth-child(2) { animation-delay: .18s; }
+    .pipeline.running .pipe-step:nth-child(3) { animation-delay: .36s; }
+    .pipeline.complete .pipe-state { background: var(--green); }
+    @keyframes process { 45% { transform: translateX(5px); background: #fff; box-shadow: 0 12px 28px rgba(0,0,0,.06); } }
+
+    .vault-card { min-height: 420px; }
+    .vault-bar { padding: 28px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+    .vault-bar strong { font-size: 17px; }
+    .counter { color: var(--muted); font-size: 12px; }
+    .secret-list { min-height: 280px; }
+    .secret-row { min-height: 94px; padding: 20px 32px; display: grid; grid-template-columns: minmax(240px,1fr) 190px auto; align-items: center; gap: 24px; border-bottom: 1px solid var(--line); transition: background .18s; }
+    .secret-row:hover { background: #fafafa; }
+    .secret-name { font-weight: 650; font-size: 15px; }
+    .secret-id { display: block; margin-top: 5px; color: var(--muted); font-family: var(--mono); font-size: 10px; overflow: hidden; text-overflow: ellipsis; }
+    .secret-meta { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .actions { display: flex; gap: 8px; justify-content: end; flex-wrap: wrap; }
+    .action { padding: 8px 10px; color: var(--blue); background: transparent; cursor: pointer; font-size: 12px; border-radius: 8px; }
+    .action:hover { background: #f0f5fb; }
+    .action.danger { color: var(--red); }
+    .action.danger:hover { background: #fff0ef; }
+    .empty { padding: 76px 24px; text-align: center; color: var(--muted); }
+    .empty strong { display: block; color: var(--ink); font-size: 18px; margin-bottom: 6px; }
+    .proof { margin: 22px 32px 30px; padding: 18px 20px; border-radius: 16px; background: #f5f5f7; color: var(--muted); font-family: var(--mono); font-size: 11px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+    .access-grid { display: grid; grid-template-columns: 1.1fr .9fr; min-height: 580px; }
+    .access-form { padding: clamp(30px,5vw,62px); }
+    .decision-pane { background: var(--dark); color: #f5f5f7; padding: clamp(30px,5vw,56px); display: flex; flex-direction: column; }
+    .decision-pane .pane-label { color: #8d8d93; }
+    .decision-standby { margin: auto 0; }
+    .decision-standby h3 { margin: 0 0 12px; font-size: 36px; letter-spacing: -.04em; }
+    .decision-standby p { margin: 0; color: #9b9ba1; line-height: 1.5; }
+    .decision { margin: auto 0; }
+    .decision-badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border-radius: 999px; background: rgba(45,188,104,.13); color: #69d391; font-size: 12px; font-weight: 650; }
+    .decision-badge.denied { background: rgba(255,80,73,.12); color: #ff7b75; }
+    .decision h3 { margin: 19px 0 8px; font-size: 34px; letter-spacing: -.035em; }
+    .decision p { color: #a1a1a6; line-height: 1.5; }
+    .reveal { margin-top: 24px; background: var(--dark-soft); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 18px; }
+    .reveal-head { display: flex; justify-content: space-between; gap: 15px; color: #a1a1a6; font-size: 11px; }
+    .reveal-value { margin-top: 14px; color: #fff; font-family: var(--mono); font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+    .countdown-track { height: 2px; background: #343439; margin-top: 18px; overflow: hidden; }
+    .countdown-fill { height: 100%; background: #61ce8b; transform-origin: left; }
+    .agent-details { margin-top: 20px; }
+    .agent-details summary { color: var(--blue); }
+
+    .security-wrap { background: var(--dark); color: #f5f5f7; padding: 122px 0; margin-top: 20px; }
+    .security-wrap .section { margin-bottom: 0; }
+    .security-wrap h2 span { color: #77777e; }
+    .security-top { display: grid; grid-template-columns: .92fr 1.08fr; gap: 24px; margin-top: 36px; }
+    .dark-card { background: var(--dark-soft); border: 1px solid rgba(255,255,255,.065); border-radius: var(--radius-lg); padding: 30px; }
+    .score-ring { width: 152px; height: 152px; border-radius: 50%; margin: 28px 0; background: conic-gradient(#55cc84 var(--score,0%), #2d2e33 0); display: grid; place-items: center; }
+    .score-ring::before { content:""; width: 122px; height: 122px; background: var(--dark-soft); border-radius: 50%; grid-area: 1/1; }
+    .score-value { grid-area: 1/1; position: relative; font-size: 38px; font-weight: 700; letter-spacing: -.04em; }
+    .score-value small { font-size: 14px; color: #8d8d93; }
+    .check-list { display: grid; gap: 10px; }
+    .check { display: flex; justify-content: space-between; gap: 16px; color: #aaaab0; font-size: 12px; }
+    .check b { color: #68d18f; font-weight: 600; }
+    .threat-tabs { display: inline-flex; padding: 3px; background: #292a2f; border-radius: 10px; margin: 24px 0; }
+    .threat-tab { color: #aaaab0; background: transparent; padding: 8px 13px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+    .threat-tab.active { background: #44454c; color: #fff; }
+    .threat-flow { display: grid; grid-template-columns: 1fr 34px 1fr 34px 1fr; align-items: stretch; }
+    .threat-node { min-height: 132px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; padding: 18px; }
+    .threat-node strong { font-size: 13px; }
+    .threat-node span { display: block; margin-top: 9px; color: #8d8d93; font-size: 11px; line-height: 1.45; }
+    .threat-node.safe { border-color: rgba(80,210,134,.3); }
+    .threat-node.risk { border-color: rgba(255,92,86,.33); }
+    .threat-arrow { display: grid; place-items: center; color: #6d6d73; }
+    .truth-note { margin: 24px 0 0; color: #9a9aa1; font-size: 12px; line-height: 1.6; }
+    .audit-card { margin-top: 24px; padding: 0; overflow: hidden; }
+    .audit-head { padding: 24px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,.07); }
+    .audit-head h3 { margin: 0; font-size: 17px; }
+    .audit-list { max-height: 330px; overflow-y: auto; }
+    .audit-row { display: grid; grid-template-columns: 116px 160px minmax(160px,1fr) 64px; gap: 18px; padding: 17px 28px; align-items: center; border-bottom: 1px solid rgba(255,255,255,.055); color: #9b9ba1; font-family: var(--mono); font-size: 10px; }
+    .audit-action { color: #eeeef0; font-family: var(--font); font-size: 11px; font-weight: 600; }
+    .status-code { justify-self: end; color: #68d18f; }
+    .status-code.denied { color: #ff7b75; }
+
+    footer { width: var(--page); margin: 90px auto 0; padding: 26px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; display: flex; justify-content: space-between; gap: 20px; }
+
+    dialog { width: min(680px,calc(100% - 32px)); max-height: calc(100vh - 40px); border: 0; border-radius: 26px; padding: 0; background: #fff; color: var(--ink); box-shadow: 0 30px 90px rgba(0,0,0,.24); overflow: auto; }
+    dialog::backdrop { background: rgba(0,0,0,.38); backdrop-filter: blur(8px); }
+    .modal-head { padding: 26px 28px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+    .modal-head h3 { margin: 0; font-size: 22px; letter-spacing: -.025em; }
+    .close { width: 32px; height: 32px; border-radius: 50%; background: #ededf0; color: var(--muted); cursor: pointer; }
+    .modal-body { padding: 28px; }
+    .modal-actions { display: flex; justify-content: end; gap: 10px; margin-top: 24px; }
+    .tutorial-floating { position: fixed; left: 20px; bottom: 20px; z-index: 75; min-height: 42px; padding: 0 15px; border: 1px solid #d2d2d7; border-radius: 999px; background: rgba(255,255,255,.92); color: var(--ink); box-shadow: 0 10px 28px rgba(0,0,0,.12); cursor: pointer; font-size: 12px; font-weight: 650; backdrop-filter: blur(14px); }
+    .tutorial-floating:hover { transform: translateY(-1px); box-shadow: 0 14px 34px rgba(0,0,0,.16); }
+    .tutorial-spotlight { position: fixed; z-index: 90; display: none; pointer-events: none; border: 2px solid #2997ff; border-radius: 18px; box-shadow: 0 0 0 9999px rgba(8,10,14,.62), 0 0 0 6px rgba(41,151,255,.18); transition: top .2s ease, left .2s ease, width .2s ease, height .2s ease; }
+    .tutorial-spotlight.show { display: block; }
+    .tutorial-tooltip { position: fixed; z-index: 92; display: none; width: min(380px,calc(100vw - 28px)); padding: 22px; border: 1px solid rgba(0,0,0,.08); border-radius: 20px; background: #fff; color: var(--ink); box-shadow: 0 24px 70px rgba(0,0,0,.24); }
+    .tutorial-tooltip.show { display: block; }
+    .tutorial-progress { color: var(--blue); font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+    .tutorial-tooltip h3 { margin: 11px 0 8px; font-size: 25px; letter-spacing: -.035em; }
+    .tutorial-tooltip p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .tutorial-controls { margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .tutorial-controls div { display: flex; gap: 8px; }
+    .tutorial-control { min-height: 36px; padding: 0 13px; border-radius: 999px; background: #ededf0; color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 600; }
+    .tutorial-control.primary { background: var(--blue); color: #fff; }
+    .tutorial-control:disabled { opacity: .38; cursor: not-allowed; }
+    .tutorial-target { outline: 3px solid rgba(41,151,255,.48); outline-offset: 7px; }
+    body.tutorial-active .tutorial-floating { opacity: .35; pointer-events: none; }
+    .toast { position: fixed; z-index: 80; right: 22px; bottom: 22px; max-width: 360px; padding: 14px 17px; border-radius: 13px; background: #202124; color: #fff; box-shadow: 0 16px 38px rgba(0,0,0,.2); font-size: 13px; transform: translateY(20px); opacity: 0; pointer-events: none; transition: .25s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: #8e1d16; }
+
+    @media (max-width: 900px) {
+      .nav-links a:not(.status-mini) { display:none; }
+      .tutorial-nav { display: none; }
+      .hero { padding-top: 82px; }
+      .store-card, .access-grid, .security-top { grid-template-columns: 1fr; }
+      .visual-pane { min-height: 520px; }
+      .secret-row { grid-template-columns: 1fr auto; }
+      .secret-meta { display:none; }
+      .section-head { align-items: start; flex-direction: column; }
+      .audit-row { grid-template-columns: 100px 1fr 52px; }
+      .audit-row span:nth-child(3) { display:none; }
+    }
+    @media (max-width: 620px) {
+      :root { --page: calc(100% - 28px); --radius-xl: 24px; }
+      .nav { gap: 10px; }
+      .nav-links { gap: 9px; }
+      .hero { min-height: auto; padding: 76px 0 82px; }
+      .hero h1 { font-size: 49px; }
+      .hero-copy { font-size: 18px; }
+      .section { margin-bottom: 94px; }
+      h2 { font-size: 39px; }
+      .form-pane, .visual-pane, .access-form, .decision-pane { padding: 30px 22px; }
+      .field-row { grid-template-columns: 1fr; }
+      .secret-row { padding: 18px 20px; grid-template-columns: 1fr; gap: 10px; }
+      .actions { justify-content: start; }
+      .vault-bar { padding: 24px 20px; }
+      .proof { margin-inline: 20px; }
+      .threat-flow { grid-template-columns: 1fr; gap: 9px; }
+      .threat-arrow { transform: rotate(90deg); }
+      .audit-row { padding-inline: 18px; grid-template-columns: 90px 1fr 42px; gap: 8px; }
+      .tutorial-floating { left: 12px; bottom: 12px; }
+      footer { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to product</a>
+  <header class="nav-shell">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>AgentShield Vault</a>
+      <div class="nav-links">
+        <a href="#product">Product</a><a href="#security">Security</a><a href="/docs">API</a><a href="#security">Documentation</a><button class="tutorial-nav" id="tutorialNav" type="button">Tutorial</button>
+        <span class="status-mini"><span class="dot" id="navDot"></span><span id="navStatus">Connecting</span></span>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div>
+        <p class="eyebrow">Quantum-safe infrastructure for autonomous systems</p>
+        <h1>Your AI agents need access. <span>They should never own your secrets.</span></h1>
+        <p class="hero-copy">AgentShield issues identity-bound, policy-checked access only when an agent needs it—then closes the window automatically.</p>
+        <div class="hero-actions">
+          <a class="button" href="#product">Explore the vault <span class="arrow">→</span></a>
+          <button class="button secondary" id="heroTutorial" type="button">Take the tutorial <span class="arrow">→</span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="capabilities" aria-label="Capabilities">
+      <div class="cap-row">
+        <div class="cap"><strong>Agent identity</strong><span>Every request has a named workload.</span></div>
+        <div class="cap"><strong>Least privilege</strong><span>Policies bind agents to specific secrets.</span></div>
+        <div class="cap"><strong>Just in time</strong><span>Access expires after 60 seconds.</span></div>
+        <div class="cap"><strong>Post-quantum</strong><span>ML-KEM-768 protects key establishment.</span></div>
+        <div class="cap"><strong>Auditable</strong><span>Approvals and denials persist without values.</span></div>
+      </div>
+    </section>
+
+    <section class="section" id="product">
+      <div class="section-head">
+        <div><p class="section-kicker">Store Secret</p><h2>Encrypted now. <span>Controlled from the first request.</span></h2></div>
+        <p class="section-note">The plaintext is sent once to the local API. Only ML-KEM-protected ciphertext is persisted.</p>
+      </div>
+      <article class="card store-card">
+        <div class="form-pane">
+          <span class="pane-label">New protected secret</span>
+          <h3 class="form-title">Seal a credential</h3>
+          <p class="form-copy">Give it a label, choose the agent that can request it, and AgentShield handles the cryptography.</p>
+          <form id="storeForm">
+            <div class="field"><label for="secretName">Secret name</label><input class="input" id="secretName" name="name" autocomplete="off" maxlength="128" placeholder="OPENAI_API_KEY" required></div>
+            <div class="field"><label for="secretValue">Secret value</label><input class="input" id="secretValue" name="value" type="password" autocomplete="new-password" maxlength="16384" placeholder="Enter a credential" required></div>
+            <details class="policy">
+              <summary>Access policy</summary>
+              <div class="policy-fields">
+                <div class="field"><label for="storeAgent">Allowed agent</label><select class="input agent-select" id="storeAgent" required></select></div>
+                <div class="field-row">
+                  <div class="field"><label for="accessStart">Start · UTC</label><input class="input" id="accessStart" type="time" value="00:00"></div>
+                  <div class="field"><label for="accessEnd">End · UTC</label><input class="input" id="accessEnd" type="time" value="23:59"></div>
+                </div>
+                <div class="field"><label for="dailyLimit">Requests per day</label><input class="input" id="dailyLimit" type="number" value="100" min="1" max="10000"></div>
+              </div>
+            </details>
+            <button class="button" id="storeButton" type="submit">Encrypt &amp; store <span class="arrow">→</span></button>
+            <p class="form-status" id="storeStatus" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+        <div class="visual-pane">
+          <span class="pane-label">Live encryption path</span>
+          <div class="pipeline" id="pipeline">
+            <div class="pipe-step"><span class="pipe-index">01</span><div><strong>Encapsulate</strong><small>ML-KEM-768 shared secret</small></div><span class="pipe-state"></span></div>
+            <div class="pipe-step"><span class="pipe-index">02</span><div><strong>Derive</strong><small>HKDF-SHA256 · 256-bit key</small></div><span class="pipe-state"></span></div>
+            <div class="pipe-step"><span class="pipe-index">03</span><div><strong>Seal</strong><small>AES-256-GCM authenticated ciphertext</small></div><span class="pipe-state"></span></div>
+          </div>
+          <p class="microcopy">Fresh randomness is generated per secret. Values are never included in lists, audits, reports, or encryption proofs.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="section" id="vault">
+      <div class="section-head">
+        <div><p class="section-kicker">Vault List</p><h2>Everything protected. <span>Nothing unnecessarily exposed.</span></h2></div>
+        <p class="section-note">Metadata stays visible for operations. Decryption stays behind identity and policy checks.</p>
+      </div>
+      <article class="card vault-card">
+        <div class="vault-bar"><strong>Protected secrets</strong><span class="counter" id="secretCount">0 secrets</span></div>
+        <div class="secret-list" id="secretList"><div class="empty"><strong>Loading vault</strong>Checking encrypted records…</div></div>
+        <pre class="proof" id="proofBox" hidden></pre>
+      </article>
+    </section>
+
+    <section class="section" id="access">
+      <div class="section-head">
+        <div><p class="section-kicker">Agent Access</p><h2>Verify. Authorize. <span>Expire automatically.</span></h2></div>
+        <p class="section-note">A successful request returns a secret and an agent-bound lease for at most five minutes; the product defaults to 60 seconds.</p>
+      </div>
+      <article class="card access-grid">
+        <div class="access-form">
+          <span class="pane-label">Just-in-time request</span>
+          <h3 class="form-title">Ask on an agent’s behalf</h3>
+          <p class="form-copy">The API checks identity status, secret permission, access window, daily limit, and the per-secret allowlist.</p>
+          <form id="accessForm">
+            <div class="field"><label for="accessSecret">Protected secret</label><select class="input" id="accessSecret" required></select></div>
+            <div class="field"><label for="accessAgent">Agent identity</label><select class="input" id="accessAgent" required></select></div>
+            <div class="field"><label for="ttl">Access duration</label><select class="input" id="ttl"><option value="60">60 seconds · recommended</option><option value="30">30 seconds</option><option value="120">2 minutes</option><option value="300">5 minutes · maximum</option></select></div>
+            <button class="button" id="accessButton" type="submit">Request access <span class="arrow">→</span></button>
+            <p class="form-status" id="accessStatus" role="status" aria-live="polite"></p>
+          </form>
+          <details class="policy agent-details">
+            <summary>Register another agent</summary>
+            <form id="agentForm" class="policy-fields">
+              <div class="field-row">
+                <div class="field"><label for="agentName">Display name</label><input class="input" id="agentName" placeholder="Support Agent" required></div>
+                <div class="field"><label for="agentId">Agent ID</label><input class="input" id="agentId" pattern="[A-Za-z0-9][A-Za-z0-9_-]{2,63}" placeholder="agent-support-001" required></div>
+              </div>
+              <div class="field"><label for="agentPermission">Secret permission</label><input class="input" id="agentPermission" placeholder="SUPPORT_API_KEY" required></div>
+              <button class="button ghost small" type="submit">Register identity</button>
+              <p class="form-status" id="agentStatus" role="status"></p>
+            </form>
+          </details>
+        </div>
+        <div class="decision-pane" aria-live="polite">
+          <span class="pane-label">Policy decision</span>
+          <div class="decision-standby" id="decisionStandby"><h3>Ready to verify.</h3><p>Select a secret and identity. No value is revealed until every check passes.</p></div>
+          <div class="decision" id="decisionResult" hidden>
+            <span class="decision-badge" id="decisionBadge">✓ Access approved</span>
+            <h3 id="decisionTitle">Lease issued.</h3><p id="decisionCopy"></p>
+            <div class="reveal" id="reveal" hidden><div class="reveal-head"><span>Transient secret value</span><span id="countdown">60s</span></div><div class="reveal-value" id="revealValue"></div><div class="countdown-track"><div class="countdown-fill" id="countdownFill"></div></div></div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <section class="security-wrap" id="security">
+    <div class="section">
+      <div class="section-head"><div><p class="section-kicker">Security</p><h2>Built for the threat ahead. <span>Honest about the threat today.</span></h2></div><button class="button ghost small" id="reportButton">Download security report</button></div>
+      <div class="security-top">
+        <article class="dark-card"><span class="pane-label">Live security posture</span><div class="score-ring" id="scoreRing"><div class="score-value"><span id="scoreValue">—</span><small>/100</small></div></div><div class="check-list" id="checkList"></div></article>
+        <article class="dark-card">
+          <span class="pane-label">Quantum threat simulator</span>
+          <div class="threat-tabs"><button class="threat-tab active" data-mode="current">Current systems</button><button class="threat-tab" data-mode="quantum">Cryptographically relevant quantum computer</button></div>
+          <div class="threat-flow" id="threatFlow"></div>
+          <p class="truth-note" id="threatNote"></p>
+        </article>
+      </div>
+      <article class="dark-card audit-card">
+        <div class="audit-head"><h3>Access audit</h3><span class="counter" id="auditCount">0 events</span></div>
+        <div class="audit-list" id="auditList"><div class="empty">No security decisions yet.</div></div>
+      </article>
+    </div>
+  </section>
+
+  <footer><span>AgentShield Vault</span><span>ML-KEM-768 · HKDF-SHA256 · AES-256-GCM · FastAPI</span></footer>
+
+  <dialog id="rotateDialog">
+    <div class="modal-head"><h3>Rotate secret</h3><button class="close" data-close="rotateDialog" aria-label="Close">×</button></div>
+    <form class="modal-body" id="rotateForm"><input id="rotateId" type="hidden"><div class="field"><label for="rotateValue">New secret value</label><input class="input" id="rotateValue" type="password" autocomplete="new-password" required></div><p class="microcopy">The record keeps its ID and policy, but receives fresh ML-KEM encapsulation, nonce, and ciphertext.</p><div class="modal-actions"><button class="button ghost" type="button" data-close="rotateDialog">Cancel</button><button class="button" type="submit">Rotate &amp; re-encrypt</button></div><p class="form-status" id="rotateStatus" role="status"></p></form>
+  </dialog>
+
+  <button class="tutorial-floating" id="tutorialFloating" type="button">? &nbsp;Tutorial</button>
+  <div class="tutorial-spotlight" id="tutorialSpotlight" aria-hidden="true"></div>
+  <aside class="tutorial-tooltip" id="tutorialTooltip" role="dialog" aria-modal="false" aria-labelledby="tutorialTitle">
+    <span class="tutorial-progress" id="tutorialProgress"></span>
+    <h3 id="tutorialTitle"></h3>
+    <p id="tutorialText"></p>
+    <div class="tutorial-controls">
+      <button class="tutorial-control" id="tutorialClose" type="button">Close</button>
+      <div><button class="tutorial-control" id="tutorialBack" type="button">Back</button><button class="tutorial-control primary" id="tutorialNext" type="button">Next</button></div>
+    </div>
+  </aside>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const state = { health:null, agents:[], secrets:[], audit:[], score:null, revealTimer:null };
+    const $ = (id) => document.getElementById(id);
+    const escapeHTML = (value='') => String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    const shortId = value => value ? `${value.slice(0,8)}…${value.slice(-5)}` : '—';
+    const stamp = value => value ? new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value)) : 'Never';
+
+    async function api(path, options={}) {
+      const response = await fetch(path, { ...options, headers:{'Content-Type':'application/json', ...(options.headers||{})} });
+      let data = null;
+      try { data = await response.json(); } catch { data = {}; }
+      if (!response.ok) {
+        const error = new Error(data.detail || `Request failed with ${response.status}`);
+        error.status = response.status; error.data = data; throw error;
+      }
+      return data;
+    }
+
+    function toast(message, isError=false) {
+      const node = $('toast'); node.textContent = message; node.className = `toast show${isError?' error':''}`;
+      clearTimeout(node.timer); node.timer = setTimeout(()=>node.className='toast', 3400);
+    }
+
+    async function loadAll() {
+      const tasks = await Promise.allSettled([api('/health'),api('/agents'),api('/list_secrets'),api('/audit?limit=100'),api('/security_score')]);
+      if (tasks[0].status==='fulfilled') state.health=tasks[0].value;
+      if (tasks[1].status==='fulfilled') state.agents=tasks[1].value.agents;
+      if (tasks[2].status==='fulfilled') state.secrets=tasks[2].value.secrets;
+      if (tasks[3].status==='fulfilled') state.audit=tasks[3].value.events;
+      if (tasks[4].status==='fulfilled') state.score=tasks[4].value;
+      render();
+      const online = tasks[0].status==='fulfilled';
+      $('navDot').classList.toggle('live',online); $('navStatus').textContent=online?'Quantum Safe':'Offline';
+    }
+
+    function render() { renderAgents(); renderSecrets(); renderAudit(); renderScore(); }
+    function renderAgents() {
+      const currentStore = $('storeAgent').value, currentAccess = $('accessAgent').value;
+      const options = state.agents.map(a=>`<option value="${escapeHTML(a.id)}">${escapeHTML(a.name)} · ${escapeHTML(a.id)}</option>`).join('');
+      $('storeAgent').innerHTML = options || '<option value="">No registered agents</option>';
+      $('accessAgent').innerHTML = options + '<option value="agent-attacker-999">Unregistered attacker · should be denied</option>';
+      if (state.agents.some(a=>a.id===currentStore)) $('storeAgent').value=currentStore;
+      if ([...$('accessAgent').options].some(o=>o.value===currentAccess)) $('accessAgent').value=currentAccess;
+    }
+    function renderSecrets() {
+      $('secretCount').textContent=`${state.secrets.length} ${state.secrets.length===1?'secret':'secrets'}`;
+      const selected = $('accessSecret').value;
+      $('accessSecret').innerHTML = state.secrets.length ? state.secrets.map(s=>`<option value="${s.id}">${escapeHTML(s.name)} · ${shortId(s.id)}</option>`).join('') : '<option value="">Store a secret first</option>';
+      if (state.secrets.some(s=>s.id===selected)) $('accessSecret').value=selected;
+      if (!state.secrets.length) {
+        $('secretList').innerHTML='<div class="empty"><strong>Your vault is ready.</strong>Store the first credential to create an encrypted record.</div>'; return;
+      }
+      $('secretList').innerHTML=state.secrets.map(s=>`<div class="secret-row"><div><span class="secret-name">${escapeHTML(s.name)}</span><span class="secret-id">${escapeHTML(s.id)}</span></div><div class="secret-meta">Created ${stamp(s.created_at)}<br>${s.rotation_count ? `Rotated ${s.rotation_count}× · ${stamp(s.last_rotated)}` : 'Original ciphertext'}</div><div class="actions"><button class="action" data-action="access" data-id="${s.id}">Request</button><button class="action" data-action="proof" data-id="${s.id}">Proof</button><button class="action" data-action="rotate" data-id="${s.id}">Rotate</button><button class="action danger" data-action="revoke" data-id="${s.id}">Revoke</button></div></div>`).join('');
+    }
+    function renderAudit() {
+      $('auditCount').textContent=`${state.audit.length} events`;
+      $('auditList').innerHTML=state.audit.length ? state.audit.map(e=>`<div class="audit-row"><span>${stamp(e.timestamp)}</span><span class="audit-action">${escapeHTML(e.action.replaceAll('_',' '))}</span><span>${escapeHTML(shortId(e.agent_id))} · ${escapeHTML(e.reason)}</span><span class="status-code ${e.http_status>=400?'denied':''}">${e.http_status}</span></div>`).join('') : '<div class="empty">No security decisions yet.</div>';
+    }
+    function renderScore() {
+      if (!state.score) return;
+      $('scoreValue').textContent=state.score.score; $('scoreRing').style.setProperty('--score',`${state.score.score}%`);
+      $('checkList').innerHTML=state.score.checks.map(c=>`<div class="check"><span>${escapeHTML(c.label)}</span><b>${c.passed?'Verified':'Review'}</b></div>`).join('');
+    }
+
+    $('storeForm').addEventListener('submit', async event => {
+      event.preventDefault(); const button=$('storeButton'), status=$('storeStatus'), pipeline=$('pipeline');
+      button.disabled=true; status.textContent='Generating post-quantum ciphertext…'; status.className='form-status'; pipeline.className='pipeline running';
+      try {
+        const result=await api('/encrypt',{method:'POST',body:JSON.stringify({name:$('secretName').value.trim(),value:$('secretValue').value,allowed_agents:[$('storeAgent').value],access_start:$('accessStart').value,access_end:$('accessEnd').value,max_requests_per_day:Number($('dailyLimit').value)})});
+        pipeline.className='pipeline complete'; status.textContent=`Stored ${result.name}. Plaintext was not persisted.`; status.className='form-status success'; $('secretValue').value='';
+        await loadAll(); toast('Secret encrypted and policy attached.');
+      } catch(error) { pipeline.className='pipeline'; status.textContent=error.message; status.className='form-status error'; }
+      finally { button.disabled=false; }
+    });
+
+    $('secretList').addEventListener('click', async event => {
+      const button=event.target.closest('[data-action]'); if(!button) return; const id=button.dataset.id, action=button.dataset.action;
+      if(action==='access') { $('accessSecret').value=id; $('access').scrollIntoView({behavior:'smooth'}); }
+      if(action==='rotate') { $('rotateId').value=id; $('rotateValue').value=''; $('rotateStatus').textContent=''; $('rotateDialog').showModal(); }
+      if(action==='proof') {
+        try { const proof=await api(`/security_proof/${id}`); $('proofBox').hidden=false; $('proofBox').textContent=`CIPHERTEXT EVIDENCE\nAlgorithm  ${proof.algorithm}\nBackend    ${proof.backend}\nKEM bytes  ${proof.kem_ciphertext_bytes}\nAES-GCM    ${proof.payload_ciphertext_bytes} bytes + ${proof.nonce_bytes}-byte nonce\nSHA-256    ${proof.ciphertext_sha256}\nPlaintext field present  ${proof.plaintext_field_present}`; }
+        catch(error) { toast(error.message,true); }
+      }
+      if(action==='revoke') {
+        const secret=state.secrets.find(s=>s.id===id); if(!confirm(`Revoke ${secret?.name||'this secret'}? The encrypted record will be removed; its audit events remain.`)) return;
+        try { await api(`/secret/${id}`,{method:'DELETE',headers:{agent_id:'agent-demo-001'}}); $('proofBox').hidden=true; await loadAll(); toast('Secret revoked. Audit evidence retained.'); } catch(error) { toast(error.message,true); }
+      }
+    });
+
+    $('rotateForm').addEventListener('submit', async event=>{
+      event.preventDefault(); $('rotateStatus').textContent='Re-encrypting with fresh cryptographic material…';
+      try { await api(`/secret/${$('rotateId').value}`,{method:'PUT',headers:{agent_id:'agent-demo-001'},body:JSON.stringify({value:$('rotateValue').value})}); $('rotateDialog').close(); await loadAll(); toast('Secret rotated. Policy and ID preserved.'); }
+      catch(error){ $('rotateStatus').textContent=error.message; $('rotateStatus').className='form-status error'; }
+    });
+
+    $('accessForm').addEventListener('submit', async event=>{
+      event.preventDefault(); const button=$('accessButton'), status=$('accessStatus'); button.disabled=true; status.textContent='Evaluating identity and policy…';
+      try { const result=await api('/request_access',{method:'POST',body:JSON.stringify({secret_id:$('accessSecret').value,agent_id:$('accessAgent').value,ttl_seconds:Number($('ttl').value)})}); showDecision(true,result); status.textContent='Identity and policy approved.'; status.className='form-status success'; await loadAll(); }
+      catch(error) { showDecision(false,{reason:error.message,status:error.status}); status.textContent=error.message; status.className='form-status error'; await refreshAudit(); }
+      finally { button.disabled=false; }
+    });
+    function showDecision(approved,data) {
+      clearInterval(state.revealTimer); $('decisionStandby').hidden=true; $('decisionResult').hidden=false; $('decisionBadge').className=`decision-badge${approved?'':' denied'}`;
+      $('decisionBadge').textContent=approved?'✓ Access approved':`× Access denied · ${data.status||403}`; $('decisionTitle').textContent=approved?'Lease issued.':'Policy held.';
+      $('decisionCopy').textContent=approved?`Bound to ${data.agent_id}. The value will disappear when the ${data.expires_in} lease closes.`:data.reason;
+      $('reveal').hidden=!approved; if(!approved){$('revealValue').textContent='';return;}
+      $('revealValue').textContent=data.secret.value; let remaining=data.expires_in_seconds, total=remaining; $('countdown').textContent=`${remaining}s`;
+      $('countdownFill').style.transform='scaleX(1)'; state.revealTimer=setInterval(()=>{remaining-=1;$('countdown').textContent=`${Math.max(remaining,0)}s`;$('countdownFill').style.transform=`scaleX(${Math.max(remaining,0)/total})`;if(remaining<=0){clearInterval(state.revealTimer);$('revealValue').textContent='Lease expired · value cleared';}},1000);
+    }
+    async function refreshAudit(){ try { state.audit=(await api('/audit?limit=100')).events; renderAudit(); } catch{} }
+
+    $('agentForm').addEventListener('submit',async event=>{
+      event.preventDefault(); const status=$('agentStatus');
+      try { await api('/agents',{method:'POST',body:JSON.stringify({name:$('agentName').value.trim(),id:$('agentId').value.trim(),description:'Registered from the AgentShield control plane.',permissions:[$('agentPermission').value.trim()]})}); status.textContent='Identity registered.';status.className='form-status success';await loadAll(); }
+      catch(error){status.textContent=error.message;status.className='form-status error';}
+    });
+
+    const threat={current:{nodes:[['Public-key systems','RSA and elliptic-curve systems remain practical today.'],['Harvest now','Attackers can store encrypted traffic for future decryption.'],['AgentShield','ML-KEM-768 removes RSA/ECC from vault key establishment.']],classes:['','risk','safe'],note:'Today’s concern is long-lived encrypted data being collected now and decrypted later. Migration should happen before a cryptographically relevant quantum computer exists.'},quantum:{nodes:[['Shor’s algorithm','A sufficiently capable fault-tolerant quantum computer would threaten RSA and ECC.'],['Key establishment','Vulnerable public-key handshakes could expose derived symmetric keys.'],['AgentShield','ML-KEM-768 is standardized for post-quantum key establishment; AES-256-GCM protects payloads.']],classes:['risk','risk','safe'],note:'This simulator does not claim quantum computers break AES-256. Grover’s algorithm changes the security margin for symmetric search; AES-256 remains the conservative payload choice.'}};
+    function renderThreat(mode='current'){const d=threat[mode];$('threatFlow').innerHTML=d.nodes.map((n,i)=>`${i?'<div class="threat-arrow">→</div>':''}<div class="threat-node ${d.classes[i]}"><strong>${n[0]}</strong><span>${n[1]}</span></div>`).join('');$('threatNote').textContent=d.note;document.querySelectorAll('.threat-tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));}
+    document.querySelectorAll('.threat-tab').forEach(b=>b.addEventListener('click',()=>renderThreat(b.dataset.mode)));
+
+    $('reportButton').addEventListener('click',async()=>{try{const report=await api('/security_report');const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`agentshield-security-report-${new Date().toISOString().slice(0,10)}.json`;link.click();URL.revokeObjectURL(link.href);toast('Metadata-only report downloaded.');}catch(error){toast(error.message,true);}});
+
+    const tutorial={
+      active:false,index:0,target:null,
+      steps:[
+        {target:'.hero-copy',title:'Welcome to AgentShield',text:'AgentShield keeps credentials encrypted and releases them only after an agent identity passes a per-secret policy.'},
+        {target:'#storeForm',title:'1. Store a secret',text:'Name the credential, enter its value, and choose the agent allowed to request it. The value is encrypted before it is persisted.'},
+        {target:'#vault .vault-card',title:'2. Manage the vault',text:'The vault shows safe metadata only. From here you can request access, inspect ciphertext evidence, rotate, or revoke a secret.'},
+        {target:'#access .access-grid',title:'3. Request agent access',text:'Select a secret and an agent identity. AgentShield checks the allowlist, permission, UTC window, and daily limit before issuing a short lease.'},
+        {target:'#security .security-top',title:'4. Review security evidence',text:'The security section explains the quantum threat, verifies the vault posture, and keeps a value-free access audit.'}
+      ],
+      start(){this.active=true;this.index=0;document.body.classList.add('tutorial-active');this.show();},
+      stop(completed=false){this.active=false;document.body.classList.remove('tutorial-active');$('tutorialSpotlight').classList.remove('show');$('tutorialTooltip').classList.remove('show');if(this.target)this.target.classList.remove('tutorial-target');this.target=null;if(completed)toast('Tutorial complete. You are ready to use the vault.');},
+      next(){if(this.index>=this.steps.length-1){this.stop(true);return;}this.index+=1;this.show();},
+      back(){if(this.index===0)return;this.index-=1;this.show();},
+      show(){if(this.target)this.target.classList.remove('tutorial-target');const step=this.steps[this.index];this.target=document.querySelector(step.target);if(!this.target){this.stop();return;}this.target.classList.add('tutorial-target');$('tutorialProgress').textContent=`Step ${this.index+1} of ${this.steps.length}`;$('tutorialTitle').textContent=step.title;$('tutorialText').textContent=step.text;$('tutorialBack').disabled=this.index===0;$('tutorialNext').textContent=this.index===this.steps.length-1?'Finish':'Next';$('tutorialTooltip').classList.add('show');this.target.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>this.position(),420);},
+      position(){if(!this.active||!this.target)return;const r=this.target.getBoundingClientRect(),pad=8,spot=$('tutorialSpotlight'),tip=$('tutorialTooltip');spot.style.top=`${Math.max(6,r.top-pad)}px`;spot.style.left=`${Math.max(6,r.left-pad)}px`;spot.style.width=`${Math.min(window.innerWidth-12,r.width+pad*2)}px`;spot.style.height=`${Math.min(window.innerHeight-12,r.height+pad*2)}px`;spot.classList.add('show');const width=Math.min(380,window.innerWidth-28),gap=16;tip.style.width=`${width}px`;const height=tip.getBoundingClientRect().height;let left=Math.max(14,Math.min(window.innerWidth-width-14,r.left+r.width/2-width/2));let top=r.bottom+gap;if(top+height>window.innerHeight-14)top=Math.max(14,r.top-height-gap);tip.style.left=`${left}px`;tip.style.top=`${top}px`;}
+    };
+    ['tutorialNav','heroTutorial','tutorialFloating'].forEach(id=>$(id).addEventListener('click',()=>tutorial.start()));
+    $('tutorialNext').addEventListener('click',()=>tutorial.next());
+    $('tutorialBack').addEventListener('click',()=>tutorial.back());
+    $('tutorialClose').addEventListener('click',()=>tutorial.stop());
+    window.addEventListener('resize',()=>tutorial.position());
+    window.addEventListener('scroll',()=>tutorial.position(),{passive:true});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&tutorial.active)tutorial.stop();});
+
+    document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
+    document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();}));
+    renderThreat(); loadAll();
+  </script>
+</body>
+</html>

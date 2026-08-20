@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: agentshield-vault
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements-render.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PQS_BACKEND
+        value: cryptography
+      - key: VAULT_AGENT_ID
+        value: agent-demo-001
+      - key: LOG_LEVEL
+        value: INFO
+

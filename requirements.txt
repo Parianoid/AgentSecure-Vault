@@ -1,0 +1,14 @@
+# Core API/demo dependencies
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+requests>=2.32,<3
+
+# Preferred PQ backend. The Python wrapper may build liboqs on first import.
+liboqs-python>=0.12,<1
+
+# Automatic fallback: modern cryptography wheels provide standardized ML-KEM.
+cryptography>=48.0.0,<51
+
+# Test/development dependencies
+httpx>=0.27,<1
+pytest>=8,<10
